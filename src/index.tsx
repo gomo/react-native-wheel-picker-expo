@@ -67,6 +67,13 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
         animated: true,
         index: index,
       });
+
+      if (Platform.OS === 'android') {
+        const { items, onChangeEnd } = this.props;
+        if (onChangeEnd) {
+          onChangeEnd({ index: index, item: items[index] });
+        }
+      }
     }
   };
 
