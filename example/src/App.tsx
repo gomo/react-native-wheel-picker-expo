@@ -42,6 +42,7 @@ export default function App() {
           items={CITIES.map((name) => ({ label: name, value: '' }))}
           onChange={({ item }) => setCity(item.label)}
           onChangeEnd={({ item }) => console.log('City.onChangeEnd', item)}
+          haptics={true}
         />
       </View>
 

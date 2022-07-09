@@ -15,12 +15,14 @@ import type {
   IViuPickerState,
   RenderItemProps,
 } from './types';
+import * as Haptics from 'expo-haptics';
 
 class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
   static defaultProps = {
     items: [],
     backgroundColor: '#FFFFFF',
     width: 150,
+    haptics: false,
   };
 
   flatListRef = React.createRef<FlatList>();
@@ -32,6 +34,9 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
     listHeight: 200,
     data: [],
   };
+
+  userTouch = false;
+  momentumScrolling = false;
 
   componentDidUpdate(prevProps: IViuPickerProps) {
     if (this.props.items?.length !== prevProps.items?.length) {
@@ -51,10 +56,18 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
   }
 
   handleOnSelect(index: number) {
-    const { items, onChange } = this.props;
+    const { items, onChange, haptics } = this.props;
     const selectedIndex = Math.abs(index);
 
     if (selectedIndex >= 0 && selectedIndex <= items.length - 1) {
+      if (
+        haptics &&
+        (this.userTouch || this.momentumScrolling) &&
+        this.state.selectedIndex !== selectedIndex
+      ) {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      }
+
       this.setState({ selectedIndex });
       onChange &&
         onChange({ index: selectedIndex, item: items[selectedIndex] });
@@ -158,8 +171,36 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
             index,
           })}
           snapToInterval={itemHeight}
-          onMomentumScrollEnd={this.handleOnChangeEnd}
           onScrollToTop={this.handleOnChangeEnd}
+          onTouchStart={(event) => {
+            this.userTouch = true;
+
+            if (flatListProps && flatListProps.onTouchStart) {
+              flatListProps.onTouchStart(event);
+            }
+          }}
+          onTouchEnd={(event) => {
+            this.userTouch = false;
+
+            if (flatListProps && flatListProps.onTouchEnd) {
+              flatListProps.onTouchEnd(event);
+            }
+          }}
+          onMomentumScrollBegin={(event) => {
+            this.momentumScrolling = true;
+
+            if (flatListProps && flatListProps.onMomentumScrollBegin) {
+              flatListProps.onMomentumScrollBegin(event);
+            }
+          }}
+          onMomentumScrollEnd={(event) => {
+            this.momentumScrolling = false;
+            this.handleOnChangeEnd();
+
+            if (flatListProps && flatListProps.onMomentumScrollEnd) {
+              flatListProps.onMomentumScrollEnd(event);
+            }
+          }}
         />
         <View
           style={[
