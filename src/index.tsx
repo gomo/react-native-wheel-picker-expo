@@ -17,7 +17,7 @@ import type {
 } from './types';
 import * as Haptics from 'expo-haptics';
 
-class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
+class WheelPickerExpo extends PureComponent<IViuPickerProps, IViuPickerState> {
   static defaultProps = {
     items: [],
     backgroundColor: '#FFFFFF',
@@ -27,6 +27,7 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
 
   flatListRef = React.createRef<FlatList>();
   backgroundColor = setAlphaColor(this.props.backgroundColor as any, 1);
+  momentumScrolling = false;
 
   state = {
     selectedIndex: 0,
@@ -36,7 +37,6 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
   };
 
   userTouch = false;
-  momentumScrolling = false;
 
   componentDidUpdate(prevProps: IViuPickerProps) {
     if (this.props.items?.length !== prevProps.items?.length) {
@@ -52,7 +52,18 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
     return Platform.select({
       ios: setAlphaColor(this.backgroundColor, 0.2),
       android: setAlphaColor(this.backgroundColor, 0.4),
+      web: setAlphaColor(this.backgroundColor, 0.4),
     }) as string;
+  }
+
+  get gradientContainerStyle() {
+    const { itemHeight } = this.state;
+    const { selectedStyle } = this.props;
+
+    return [
+      { height: 2 * itemHeight, borderColor: selectedStyle?.borderColor },
+      styles.gradientContainer,
+    ];
   }
 
   handleOnSelect(index: number) {
@@ -62,7 +73,7 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
     if (selectedIndex >= 0 && selectedIndex <= items.length - 1) {
       if (
         haptics &&
-        (this.userTouch || this.momentumScrolling) &&
+        this.userTouch &&
         this.state.selectedIndex !== selectedIndex
       ) {
         Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -125,10 +136,8 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
     const { data, itemHeight, listHeight, selectedIndex } = this.state;
     const { width, initialSelectedIndex, flatListProps, selectedStyle } =
       this.props;
-    const gradientContainerStyle = [
-      { height: 2 * itemHeight, borderColor: selectedStyle?.borderColor },
-      styles.gradientContainer,
-    ];
+
+    if (!data.length) return;
 
     return (
       <View
@@ -204,7 +213,7 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
         />
         <View
           style={[
-            gradientContainerStyle,
+            this.gradientContainerStyle,
             styles.topGradient,
             { borderBottomWidth: selectedStyle?.borderWidth },
           ]}
@@ -217,7 +226,7 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
         </View>
         <View
           style={[
-            gradientContainerStyle,
+            this.gradientContainerStyle,
             styles.bottomGradient,
             { borderTopWidth: selectedStyle?.borderWidth },
           ]}
@@ -233,9 +242,11 @@ class ViuPicker extends PureComponent<IViuPickerProps, IViuPickerState> {
   }
 }
 
-const Item = React.memo(({ fontSize, label, fontColor }: RenderItemProps) => (
-  <Text style={{ fontSize, color: fontColor }}>{label}</Text>
-));
+const Item = React.memo(
+  ({ fontSize, label, fontColor, textAlign }: RenderItemProps) => (
+    <Text style={{ fontSize, color: fontColor, textAlign }}>{label}</Text>
+  )
+);
 
 const PickerItem = (
   { item, index }: any,
@@ -249,14 +260,20 @@ const PickerItem = (
 
   const fontSize = gap > 1 ? sizeText[2] : sizeText[gap];
   const fontColor = adaptiveColor(style.backgroundColor);
+  const textAlign = 'center';
 
   return (
     <TouchableOpacity activeOpacity={1} onPress={() => onPress(index - 2)}>
       <View style={style}>
         {typeof renderItem === 'function' &&
-          renderItem({ fontSize, fontColor, label: item.label })}
+          renderItem({ fontSize, fontColor, label: item.label, textAlign })}
         {!renderItem && (
-          <Item fontSize={fontSize} fontColor={fontColor} label={item.label} />
+          <Item
+            fontSize={fontSize}
+            fontColor={fontColor}
+            textAlign={textAlign}
+            label={item.label}
+          />
         )}
       </View>
     </TouchableOpacity>
@@ -277,5 +294,4 @@ const styles = StyleSheet.create({
   bottomGradient: { bottom: 0 },
 });
 
-const WheelPickerExpo = ViuPicker;
 export default WheelPickerExpo;
